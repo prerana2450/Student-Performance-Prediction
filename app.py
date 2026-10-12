@@ -16,6 +16,15 @@ from preprocess import FEATURES, TARGET
 BASE_DIR = Path(__file__).resolve().parent
 RESULTS_PATH = BASE_DIR / "model_results.json"
 
+CSV_PATH = BASE_DIR / "student_data.csv"
+
+@st.cache_data
+def get_student_data():
+    df = pd.read_csv(CSV_PATH)
+    df["Student_Name"] = df["Student_Name"].astype(str).str.strip()
+    return df
+
+
 st.set_page_config(page_title="Student Performance Prediction System", page_icon="🎓", layout="wide")
 
 
@@ -44,21 +53,68 @@ except FileNotFoundError:
 
 # ------------------------------------------------------------------ inputs
 st.header("👨‍🎓 Student Details")
-name = st.text_input("Student Name (for display only)")
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    study_hours = st.number_input("Study Hours per Day", 0.0, 24.0, 5.5, 0.5)
-    attendance = st.number_input("Attendance (%)", 0.0, 100.0, 78.0, 1.0)
-    previous_marks = st.number_input("Previous Marks (0-100)", 0.0, 100.0, 70.0, 1.0)
-with col2:
-    assignment = st.number_input("Assignment Score (0-100)", 0.0, 100.0, 72.0, 1.0)
-    internal = st.number_input("Internal Marks (0-100)", 0.0, 100.0, 70.0, 1.0)
-    gpa = st.number_input("Previous Semester GPA (0-10)", 0.0, 10.0, 7.2, 0.1)
-with col3:
-    participation = st.number_input("Class Participation (%)", 0.0, 100.0, 70.0, 1.0)
-    learning_hours = st.number_input("Learning Hours per Day", 0.0, 24.0, 5.0, 0.5)
-    backlogs = st.number_input("Number of Backlogs", 0, 20, 0, 1)
+try:
+    student_df = get_student_data()
+except FileNotFoundError:
+    st.error("student_data.csv not found in the repository.")
+    st.stop()
+
+student_names = sorted(
+    student_df["Student_Name"].dropna().unique().tolist()
+)
+
+name = st.selectbox(
+    "Select Student Name",
+    ["Select a student"] + student_names
+)
+
+if name != "Select a student":
+    matching_rows = student_df[student_df["Student_Name"] == name]
+
+    if len(matching_rows) > 1:
+        st.warning("Duplicate names found. Please use Student_ID to identify the correct student.")
+
+    student = matching_rows.iloc[0]
+
+    st.success(f"Details loaded for {name}!")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        study_hours = float(student["Study_Hours"])
+        st.number_input("Study Hours per Day", value=study_hours, disabled=True)
+
+        attendance = float(student["Attendance"])
+        st.number_input("Attendance (%)", value=attendance, disabled=True)
+
+        previous_marks = float(student["Previous_Marks"])
+        st.number_input("Previous Marks (0-100)", value=previous_marks, disabled=True)
+
+    with col2:
+        assignment = float(student["Assignment_Score"])
+        st.number_input("Assignment Score (0-100)", value=assignment, disabled=True)
+
+        internal = float(student["Internal_Marks"])
+        st.number_input("Internal Marks (0-100)", value=internal, disabled=True)
+
+        gpa = float(student["Previous_Semester_GPA"])
+        st.number_input("Previous Semester GPA (0-10)", value=gpa, disabled=True)
+
+    with col3:
+        participation = float(student["Class_Participation"])
+        st.number_input("Class Participation (%)", value=participation, disabled=True)
+
+        learning_hours = float(student["Learning_Hours"])
+        st.number_input("Learning Hours per Day", value=learning_hours, disabled=True)
+
+        backlogs = int(student["Backlogs"])
+        st.number_input("Number of Backlogs", value=backlogs, disabled=True)
+
+else:
+    st.info("Please select a student to load their academic details.")
+    st.stop()
+
 
 # ------------------------------------------------------------------ prediction
 if st.button("🔮 Predict Final Marks"):
