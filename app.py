@@ -63,6 +63,8 @@ except FileNotFoundError:
 student_names = sorted(
     student_df["Student_Name"].dropna().unique().tolist()
 )
+st.write("Total CSV records:", len(student_df))
+st.write("Unique student names:", len(student_names))
 
 name = st.selectbox(
     "Select Student Name",
